@@ -19,8 +19,6 @@
 
 ## 二、项目结构
 
-设计稿参考： ./设计稿草图.png
-
 ```
 local-translator/
 ├── app.py                  # FastAPI 主入口 + API路由
@@ -30,6 +28,11 @@ local-translator/
 ├── requirements.txt        # Python依赖
 └── README.md               # 使用说明
 ```
+
+设计稿说明
+
+1. 页面设计稿参考： ./设计稿草图.png
+2. 大致布局： 左右结构，左边输入，右边输出，最右侧有默认隐藏的历史记录（仅保留最多20次）
 
 ---
 
@@ -52,7 +55,7 @@ pydantic>=2.10.0
 import requests
 from typing import Optional
 
-OLLAMA_BASE_URL = "http://localhost:8980/v1"  # oMLX服务地址
+OLLAMA_BASE_URL = "http://localhost:8050/v1"  # oMLX服务地址
 MODEL_NAME = "translategemma-4b-it-4bit"       # oMLX中加载的模型名
 DEFAULT_MAX_TOKENS = 512
 DEFAULT_TEMPERATURE = 0.3                      # 翻译任务需低温度保证一致性
@@ -694,7 +697,7 @@ git clone https://github.com/jundot/omlx && cd omlx && pip install -e .
 omlx serve --model mlx-community/translategemma-4b-it-4bit &
 
 # 验证 oMLX 是否正常运行
-curl http://localhost:8000/v1/models
+curl http://localhost:8050/v1/models
 ```
 
 ### Step 2: 启动翻译服务
