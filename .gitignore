@@ -221,3 +221,6 @@ __marimo__/
 node_modules/
 dist/
 /docs/
+/res-data/
+/.history/
+/docs/superpowers/
