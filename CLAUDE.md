@@ -29,7 +29,7 @@ main.py         # 入口占位符（生产环境不使用）
 uv sync
 
 # 启动开发服务器
-uvicorn app:app --reload --host 0.0.0.0 --port 8980
+uvicorn app:app --reload --host 0.0.0.0 --port 8780
 
 # 或：python -m uvicorn app:app --reload
 ```
@@ -40,7 +40,7 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8980
 
 编辑 `config.json` 可修改：
 - `omlx.*` — oMLX 服务端点、模型名称、温度、最大 token 数
-- `server.port` — FastAPI 服务器端口（默认 8980）
+- `server.port` — FastAPI 服务器端口（默认 8780）
 - `history_limit` — 最大保存翻译数（默认 20）
 - `languages` — 语言代码 → 显示名称映射
 

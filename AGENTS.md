@@ -4,7 +4,7 @@
 
 ```bash
 uv sync                          # 安装依赖（需要 Python 3.13）
-uvicorn app:app --reload --host 0.0.0.0 --port 8980
+uvicorn app:app --reload --host 0.0.0.0 --port 8780
 ```
 
 测试：`pytest`（无需子命令）。需要 oMLX mock — 测试中 patch 了 `requests.post`，不需要真实的模型服务。
@@ -14,7 +14,7 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8980
 `config.json` 是唯一配置来源 — `app.py` 和 `translate.py` 都在导入时读取它。修改后需要重启服务。关键字段：
 
 - `omlx.*` — host、port（默认 8050）、模型名、temperature、max_tokens
-- `server.port` — FastAPI 端口（默认 8980）
+- `server.port` — FastAPI 端口（默认 8780）
 - `history_limit` — 最大保存翻译数（默认 20）
 
 ## 架构

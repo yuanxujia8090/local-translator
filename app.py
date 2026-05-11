@@ -25,7 +25,7 @@ with open(_config_path, "r", encoding="utf-8") as f:
     _config = json.load(f)
 
 _server_cfg = _config.get("server", {})
-_SERVER_PORT = _server_cfg.get("port", 8980)
+_SERVER_PORT = _server_cfg.get("port", 8780)
 
 # 历史记录管理（线程锁保护并发安全）
 _HISTORY_DIR = Path(os.path.dirname(__file__)) / ".history"
@@ -226,4 +226,4 @@ async def health():
 
 
 # ---------- 启动方式 ----------
-# uvicorn app:app --reload --host 0.0.0.0 --port 8980
+# uvicorn app:app --reload --host 0.0.0.0 --port 8780
