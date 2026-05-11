@@ -43,3 +43,10 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8980
 - `server.port` — FastAPI 服务器端口（默认 8980）
 - `history_limit` — 最大保存翻译数（默认 20）
 - `languages` — 语言代码 → 显示名称映射
+
+## 日志
+
+- 日志输出到 stderr（控制台）和 `logs/local-translator.log`（按天轮转）
+- 日志级别通过 `LOG_LEVEL` 环境变量控制（默认 INFO，可选 DEBUG/WARNING/ERROR）
+- 查看日志：`tail -f logs/local-translator.log`
+- 调试模式：`LOG_LEVEL=DEBUG uvicorn app:app --reload`
