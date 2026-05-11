@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>本地翻译 — TranslateGemma-4B-it</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --error: #ef4444;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    header h1 span { color: var(--primary); }
+
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success); transition: background 0.3s;
+    }
+
+    .status-dot.error { background: var(--error); }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 32px;
+    }
+
+    /* 方向切换栏 */
+    .direction-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .lang-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .lang-select:focus { border-color: var(--primary); }
+
+    .swap-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+
+    .swap-btn:hover { background: var(--primary); border-color: var(--primary); }
+
+    /* 翻译面板 */
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+    }
+
+    @media (max-width: 768px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-header h3 { font-size: 14px; font-weight: 500; }
+
+    .panel-actions { display: flex; gap: 8px; }
+
+    .icon-btn {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; padding: 4px 8px; border-radius: 6px;
+      font-size: 13px; transition: all 0.2s;
+    }
+
+    .icon-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    textarea {
+      flex: 1;
+      min-height: 200px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      padding: 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+    }
+
+    textarea::placeholder { color: var(--text-muted); }
+
+    .output-area {
+      flex: 1;
+      min-height: 200px;
+      padding: 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .output-area.placeholder { color: var(--text-muted); font-style: italic; }
+
+    .panel-footer {
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* 翻译按钮 */
+    .translate-bar {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .translate-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 48px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .translate-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .translate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .translate-btn.loading {
+      position: relative;
+      pointer-events: none;
+    }
+
+    .translate-btn.loading::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      border: 2px solid transparent;
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 历史记录 */
+    .history-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-top: 16px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .history-toggle:hover { color: var(--text); border-color: var(--primary); }
+
+    .history-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .history-panel.open {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .history-list {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .history-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .history-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .history-text { font-size: 14px; color: var(--text); margin-bottom: 4px; }
+    .history-translation { font-size: 14px; color: var(--primary); }
+
+    .history-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* 错误提示 */
+    .error-toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: var(--error);
+      color: white;
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+
+    .error-toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><span>⚡</span> 本地翻译<small style="font-weight:400;font-size:13px;color:var(--text-muted)">TranslateGemma-4B-it</small></h1>
+  <div class="status-badge">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">检查中...</span>
+  </div>
+</header>
+
+<main>
+  <div class="direction-bar">
+    <select class="lang-select" id="srcLangSelect"></select>
+    <button class="swap-btn" onclick="swapDirection()" title="交换方向">⇄</button>
+    <select class="lang-select" id="tgtLangSelect"></select>
+  </div>
+
+  <div class="panels">
+    <!-- 源语言面板 -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3 id="srcPanelTitle">输入</h3>
+        <div class="panel-actions">
+          <button class="icon-btn" onclick="clearSource()" title="清空">✕</button>
+          <button class="icon-btn" onclick="pasteFromClipboard()" title="粘贴">📋</button>
+        </div>
+      </div>
+      <textarea id="sourceText" placeholder="在此输入要翻译的文本..."></textarea>
+      <div class="panel-footer">
+        <span id="charCount">0 / 4096</span>
+      </div>
+    </div>
+
+    <!-- 目标语言面板 -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3 id="tgtPanelTitle">翻译</h3>
+        <div class="panel-actions">
+          <button class="icon-btn" onclick="copyResult()" title="复制结果">📄</button>
+        </div>
+      </div>
+      <div class="output-area placeholder" id="resultText">翻译结果将显示在这里...</div>
+      <div class="panel-footer">
+        <span id="resultInfo"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="translate-bar">
+    <button class="translate-btn" id="translateBtn" onclick="doTranslate()">翻译</button>
+  </div>
+
+  <button class="history-toggle" onclick="toggleHistory()">📜 历史记录</button>
+
+  <div class="history-panel" id="historyPanel">
+    <div class="history-list" id="historyList"></div>
+  </div>
+</main>
+
+<div class="error-toast" id="errorToast"></div>
+
+<script>
+  // ---------- 状态管理 ----------
+  let srcLang = 'en';
+  let tgtLang = 'zh-Hans';
+  let debounceTimer = null;
+
+  // ---------- DOM 元素 ----------
+  const sourceText = document.getElementById('sourceText');
+  const resultText = document.getElementById('resultText');
+  const translateBtn = document.getElementById('translateBtn');
+  const charCount = document.getElementById('charCount');
+  const resultInfo = document.getElementById('resultInfo');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const srcLangSelect = document.getElementById('srcLangSelect');
+  const tgtLangSelect = document.getElementById('tgtLangSelect');
+
+  // ---------- 初始化语言选择器 ----------
+  const languages = { en: 'English', 'zh-Hans': '简体中文', ja: '日本語' };
+
+  function initLangSelects() {
+    for (const [code, name] of Object.entries(languages)) {
+      const opt1 = new Option(name, code);
+      const opt2 = new Option(name, code);
+      srcLangSelect.add(opt1);
+      tgtLangSelect.add(opt2);
+    }
+    srcLangSelect.value = srcLang;
+    tgtLangSelect.value = tgtLang;
+
+    srcLangSelect.addEventListener('change', () => {
+      if (srcLangSelect.value === tgtLangSelect.value) {
+        const options = [...tgtLangSelect.options].filter(o => o.value !== srcLangSelect.value);
+        tgtLangSelect.innerHTML = '';
+        options.forEach(o => tgtLangSelect.add(o));
+      }
+      srcLang = srcLangSelect.value;
+      tgtLang = tgtLangSelect.value;
+    });
+
+    tgtLangSelect.addEventListener('change', () => {
+      if (srcLangSelect.value === tgtLangSelect.value) {
+        const options = [...srcLangSelect.options].filter(o => o.value !== tgtLangSelect.value);
+        srcLangSelect.innerHTML = '';
+        options.forEach(o => srcLangSelect.add(o));
+      }
+      srcLang = srcLangSelect.value;
+      tgtLang = tgtLangSelect.value;
+    });
+  }
+
+  initLangSelects();
+
+  // ---------- 输入事件 ----------
+  sourceText.addEventListener('input', () => {
+    charCount.textContent = `${sourceText.value.length} / 4096`;
+
+    if (sourceText.value.trim()) {
+      resultText.classList.add('placeholder');
+      resultText.textContent = '翻译结果将显示在这里...';
+    }
+
+    // 防抖自动翻译
+    if (debounceTimer) clearTimeout(debounceTimer);
+    const text = sourceText.value.trim();
+    if (text) {
+      debounceTimer = setTimeout(() => doTranslate(), 800);
+    } else {
+      resultText.classList.add('placeholder');
+      resultText.textContent = '翻译结果将显示在这里...';
+    }
+  });
+
+  // Ctrl+Enter / Cmd+Enter 快捷翻译
+  sourceText.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      doTranslate();
+    }
+  });
+
+  checkHealth();
+  loadHistory();
+
+  // ---------- 健康检查 ----------
+  async function checkHealth() {
+    try {
+      const resp = await fetch('/api/health');
+      const data = await resp.json();
+      if (data.status === 'ok') {
+        statusDot.classList.remove('error');
+        statusText.textContent = `oMLX 已连接 (${data.omlx_url})`;
+      } else {
+        throw new Error(data.status);
+      }
+    } catch (e) {
+      statusDot.classList.add('error');
+      statusText.textContent = 'oMLX 未连接';
+    }
+  }
+
+  // ---------- 交换方向 ----------
+  function swapDirection() {
+    [srcLang, tgtLang] = [tgtLang, srcLang];
+
+    // 重新构建语言选择器以移除冲突
+    const srcOpts = [...srcLangSelect.options].filter(o => o.value !== tgtLang);
+    const tgtOpts = [...tgtLangSelect.options].filter(o => o.value !== srcLang);
+
+    srcLangSelect.innerHTML = '';
+    tgtLangSelect.innerHTML = '';
+    srcOpts.forEach(o => srcLangSelect.add(new Option(o.text, o.value)));
+    tgtOpts.forEach(o => tgtLangSelect.add(new Option(o.text, o.value)));
+
+    srcLangSelect.value = srcLang;
+    tgtLangSelect.value = tgtLang;
+
+    // 交换源文本和结果
+    if (resultText.classList.contains('placeholder')) return;
+    const result = resultText.textContent;
+    if (result && !resultText.classList.contains('placeholder')) {
+      sourceText.value = result;
+      charCount.textContent = `${result.length} / 4096`;
+    }
+  }
+
+  // ---------- 翻译 ----------
+  async function doTranslate() {
+    const text = sourceText.value.trim();
+    if (!text) return;
+
+    translateBtn.classList.add('loading');
+    translateBtn.textContent = '';
+    resultText.classList.remove('placeholder');
+
+    try {
+      const resp = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, src_lang: srcLang, tgt_lang: tgtLang }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || '翻译失败');
+      }
+
+      const data = await resp.json();
+      resultText.textContent = data.target;
+      resultInfo.textContent = `${data.src_lang} → ${data.tgt_lang}`;
+
+    } catch (e) {
+      showError(e.message);
+      resultText.textContent = '翻译失败，请重试';
+    } finally {
+      translateBtn.classList.remove('loading');
+      translateBtn.textContent = '翻译';
+    }
+  }
+
+  // ---------- 工具函数 ----------
+  function clearSource() {
+    sourceText.value = '';
+    charCount.textContent = '0 / 4096';
+    resultText.classList.add('placeholder');
+    resultText.textContent = '翻译结果将显示在这里...';
+    resultInfo.textContent = '';
+  }
+
+  async function copyResult() {
+    const text = resultText.textContent;
+    if (!text || resultText.classList.contains('placeholder')) return;
+    await navigator.clipboard.writeText(text);
+    showToast('已复制到剪贴板');
+  }
+
+  async function pasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      sourceText.value = text;
+      charCount.textContent = `${text.length} / 4096`;
+    } catch {
+      showToast('无法读取剪贴板');
+    }
+  }
+
+  // ---------- 历史记录 ----------
+  function toggleHistory() {
+    const panel = document.getElementById('historyPanel');
+    panel.classList.toggle('open');
+  }
+
+  async function loadHistory() {
+    try {
+      const resp = await fetch('/api/history');
+      const history = await resp.json();
+      renderHistory(history);
+    } catch (e) {
+      console.error('加载历史失败:', e);
+    }
+  }
+
+  function renderHistory(history) {
+    const list = document.getElementById('historyList');
+
+    if (!history || history.length === 0) {
+      list.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+      return;
+    }
+
+    list.innerHTML = history.map(item => `
+      <div class="history-item">
+        <div class="history-meta">
+          <span>${languages[item.src_lang] || item.src_lang} → ${languages[item.tgt_lang] || item.tgt_lang}</span>
+          <span>${new Date(item.timestamp).toLocaleString('zh-CN')}</span>
+        </div>
+        <div class="history-text">${escapeHtml(item.text)}</div>
+        <div class="history-translation">${escapeHtml(item.translation)}</div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ---------- 错误提示 ----------
+  function showError(msg) {
+    const toast = document.getElementById('errorToast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('errorToast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+</script>
+
+</body>
+</html>
