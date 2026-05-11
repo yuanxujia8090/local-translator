@@ -10,6 +10,8 @@ import os
 import requests
 from typing import Optional
 
+from logger import logger
+
 # 从 config.json 读取配置
 _config_path = os.path.join(os.path.dirname(__file__), "config.json")
 with open(_config_path, "r", encoding="utf-8") as f:
@@ -32,6 +34,8 @@ def translate_text(
     """调用 oMLX /v1/completions 接口执行翻译"""
     if not text.strip():
         return ""
+
+    logger.info("调用 oMLX: %s -> %s, model=%s", src_lang, tgt_lang, MODEL_NAME)
 
     # 手动构造 TranslateGemma 期望的 prompt 格式（使用语言代码）
     prompt = (
@@ -57,16 +61,22 @@ def translate_text(
         )
         resp.raise_for_status()
         result = resp.json()["choices"][0]["text"]
-        # 手动截取第一个 <end_of_turn> 之前的内容
-        if "<end_of_turn>" in result:
-            result = result.split("<end_of_turn>")[0].strip()
-        else:
-            result = result.strip()
-        return result
     except requests.exceptions.ConnectionError:
+        logger.error("无法连接到 oMLX 服务，请确保 oMLX 已启动")
         raise ConnectionError("无法连接到 oMLX 服务，请确保 oMLX 已启动")
+    except requests.exceptions.HTTPError:
+        logger.error("oMLX HTTP 错误: %s", resp.text)
+        raise
     except KeyError:
+        logger.error("API 返回格式异常: %s", resp.text)
         raise RuntimeError(f"API 返回格式异常: {resp.text}")
+    # 手动截取第一个 <end_of_turn> 之前的内容
+    if "<end_of_turn>" in result:
+        result = result.split("<end_of_turn>")[0].strip()
+    else:
+        result = result.strip()
+    logger.info("oMLX 返回翻译结果")
+    return result
 
 
 def translate_batch(
