@@ -2,6 +2,7 @@
 
 import json
 import os
+import requests
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional
 
+from logger import logger
 from translate import (
     translate_text,
     OLLAMA_BASE_URL,
@@ -92,6 +94,7 @@ def _save_history(history: list[dict]) -> None:
 
 def _add_to_history(text: str, translation: str, src_lang: str, tgt_lang: str) -> HistoryItem:
     """添加翻译到历史记录（线程安全）"""
+    logger.info("写入历史记录: %s -> %s", src_lang, tgt_lang)
     with _history_lock:
         history = _load_history()
         # 安全地取最大 ID，处理损坏数据
@@ -132,6 +135,7 @@ async def index():
 @app.post("/api/translate", response_model=TranslateResponse)
 async def api_translate(req: TranslateRequest):
     """执行翻译"""
+    logger.info("翻译请求: %s -> %s, text=%r", req.src_lang, req.tgt_lang, req.text[:100])
     try:
         result = translate_text(
             text=req.text,
@@ -141,9 +145,13 @@ async def api_translate(req: TranslateRequest):
             temperature=req.temperature,
         )
     except ConnectionError as e:
+        logger.error("翻译连接失败: %s", str(e))
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
+        logger.error("翻译失败: %s", str(e))
         raise HTTPException(status_code=500, detail=f"翻译失败: {str(e)}")
+
+    logger.info("翻译成功: %s -> %s", req.src_lang, req.tgt_lang)
 
     # 添加到历史记录
     _add_to_history(req.text, result, req.src_lang, req.tgt_lang)
@@ -162,6 +170,8 @@ async def api_translate_auto(text: str):
     if not text.strip():
         raise HTTPException(status_code=400, detail="文本不能为空")
 
+    logger.info("自动翻译请求: text=%r", text[:100])
+
     # 简单启发式判断
     has_chinese = any("一" <= c <= "鿿" for c in text)
     has_japanese = any("぀" <= c <= "ヿ" for c in text)
@@ -179,7 +189,10 @@ async def api_translate_auto(text: str):
     try:
         result = translate_text(text, src_lang=src, tgt_lang=tgt)
     except Exception as e:
+        logger.error("自动翻译失败: %s", str(e))
         raise HTTPException(status_code=500, detail=f"翻译失败: {str(e)}")
+
+    logger.info("自动翻译成功: %s -> %s", src, tgt)
 
     return {"source": text, "target": result, "src_lang": src, "tgt_lang": tgt}
 
@@ -194,6 +207,7 @@ async def api_get_history():
 @app.delete("/api/history")
 async def api_clear_history():
     """清空历史记录"""
+    logger.info("清空历史记录")
     _save_history([])
     return {"message": "历史记录已清空"}
 
@@ -205,6 +219,7 @@ async def health():
         resp = requests.get(f"{OLLAMA_BASE_URL}/models", timeout=5)
         omlx_status = "ok" if resp.status_code == 200 else f"error: {resp.status_code}"
     except Exception as e:
+        logger.warning("oMLX 不可达: %s", str(e))
         omlx_status = f"unreachable: {str(e)}"
 
     return HealthResponse(status="ok", omlx_url=f"{OLLAMA_BASE_URL}")
