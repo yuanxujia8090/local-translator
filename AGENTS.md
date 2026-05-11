@@ -1,47 +1,47 @@
 # AGENTS.md — Local-Translator
 
-## Setup & Run
+## 安装与运行
 
 ```bash
-uv sync                          # install deps (Python 3.13 required)
+uv sync                          # 安装依赖（需要 Python 3.13）
 uvicorn app:app --reload --host 0.0.0.0 --port 8980
 ```
 
-Tests: `pytest` (no subcommand needed). Requires oMLX mock — tests patch `requests.post`; no real model server needed.
+测试：`pytest`（无需子命令）。需要 oMLX mock — 测试中 patch 了 `requests.post`，不需要真实的模型服务。
 
-## Config
+## 配置
 
-`config.json` is the single source of truth — both `app.py` and `translate.py` read it at import time. Changing it requires a server restart. Key keys:
+`config.json` 是唯一配置来源 — `app.py` 和 `translate.py` 都在导入时读取它。修改后需要重启服务。关键字段：
 
-- `omlx.*` — host, port (default 8050), model name, temperature, max_tokens
-- `server.port` — FastAPI port (default 8980)
-- `history_limit` — max saved translations (default 20)
+- `omlx.*` — host、port（默认 8050）、模型名、temperature、max_tokens
+- `server.port` — FastAPI 端口（默认 8980）
+- `history_limit` — 最大保存翻译数（默认 20）
 
-## Architecture
+## 架构
 
 ```
-app.py          # FastAPI — routes, request/response models, history management
-translate.py    # Translation logic — builds prompt with <start_of_turn>/<end_of_turn> tokens, calls oMLX /v1/completions
-config.json     # All runtime configuration (read at import)
-templates/index.html  # Single-page frontend, no build step
+app.py          # FastAPI — 路由、请求/响应模型、历史记录管理
+translate.py    # 翻译逻辑 — 构建带 <start_of_turn>/<end_of_turn> token 的 prompt，调用 oMLX /v1/completions
+config.json     # 全部运行时配置（导入时读取）
+templates/index.html  # 单页前端，无需构建步骤
 ```
 
-Critical detail: `translate.py` uses `/v1/completions` (not chat/completions). Prompt format must include `<start_of_turn>` / `<end_of_turn>` tokens for TranslateGemma. See `check-omlx.py` for reference.
+关键细节：`translate.py` 使用 `/v1/completions`（不是 chat/completions）。prompt 格式必须包含 `<start_of_turn>` / `<end_of_turn>` token 以适配 TranslateGemma。参考 `check-omlx.py`。
 
-## Testing quirks
+## 测试注意事项
 
-- Tests use a `fake_config` fixture that creates a temp `config.json` and clears `sys.modules["app"]` / `sys.modules["translate"]` so re-import picks up the new config.
-- Tests mock `requests.post` to return fake completions responses — never hit a real oMLX server.
-- `conftest.py` provides shared fixtures: `fake_config`, `mock_omlx_response`, `patch_omlx_call`, `patch_health_check`.
+- 测试使用 `fake_config` fixture 创建临时 `config.json`，并清除 `sys.modules["app"]` / `sys.modules["translate"]` 以便重新导入时读取新配置。
+- 测试 mock `requests.post` 返回假 completions 响应 — 不会连接真实的 oMLX 服务。
+- `conftest.py` 提供共享 fixtures：`fake_config`、`mock_omlx_response`、`patch_omlx_call`、`patch_health_check`。
 
-## History
+## 历史记录
 
-Translations are persisted to `.history/translations.json` (plain JSON, thread-safe via lock). Ignored by git.
+翻译结果持久化到 `.history/translations.json`（纯 JSON，通过锁保证线程安全）。已被 git 忽略。
 
-## Known issues
+## 已知问题
 
-- `app.py:206` — health endpoint computes `omlx_status` but never uses it in the response (returns URL instead). Tests document this behavior.
+- `app.py:206` — health endpoint 计算了 `omlx_status` 但从未在响应中使用（始终返回 URL）。测试中已记录此行为。
 
-## Existing guidance
+## 已有指引
 
-See `CLAUDE.md` for architecture details and development commands.
+详见 `CLAUDE.md`，包含架构细节和开发命令。

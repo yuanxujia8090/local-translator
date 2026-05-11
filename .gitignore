@@ -224,3 +224,5 @@ dist/
 /res-data/
 /.history/
 /docs/superpowers/
+.DS_Store
+.DS_Store
