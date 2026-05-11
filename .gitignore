@@ -225,5 +225,6 @@ dist/
 /.history/
 /docs/superpowers/
 .DS_Store
-.DS_Store
-.DS_Store
+
+# Logs
+logs/
