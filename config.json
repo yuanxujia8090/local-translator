@@ -7,7 +7,7 @@
     "max_tokens": 1024
   },
   "server": {
-    "port": 8980
+    "port": 8780
   },
   "max_input_chars": 4096,
   "debounce_ms": 800,
