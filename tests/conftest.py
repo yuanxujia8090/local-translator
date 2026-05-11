@@ -23,7 +23,7 @@ def fake_config(tmp_path: Path):
             "temperature": 0.1,
             "max_tokens": 1024,
         },
-        "server": {"port": 8980},
+        "server": {"port": 8780},
         "max_input_chars": 4096,
         "debounce_ms": 800,
         "history_limit": 20,
